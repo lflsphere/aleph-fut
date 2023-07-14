@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "aleph-sdk-ts": "^3.6.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.6"
+  }
+}
