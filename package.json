@@ -4,5 +4,7 @@
   },
   "devDependencies": {
     "typescript": "^5.1.6"
-  }
+  },
+  "target": "es2017",
+  "module": "esnext"
 }

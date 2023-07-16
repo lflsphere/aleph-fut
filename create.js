@@ -36,46 +36,80 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.aleph_get = exports.aleph_create = exports.account = void 0;
+exports.aleph_create = exports.cipherMessage = exports.cipherString = exports.account = void 0;
 var aggregate_1 = require("aleph-sdk-ts/dist/messages/aggregate");
-var aggregate_2 = require("aleph-sdk-ts/dist/messages/aggregate");
 var types_1 = require("aleph-sdk-ts/dist/messages/types");
 var ethereum_1 = require("aleph-sdk-ts/dist/accounts/ethereum");
 exports.account = (0, ethereum_1.NewAccount)().account;
-var aleph_create = function (account, key, content) { return __awaiter(void 0, void 0, void 0, function () {
-    var res;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, (0, aggregate_1.Publish)({
-                    account: account,
-                    key: key,
-                    content: content,
-                    channel: "TEST",
-                    storageEngine: types_1.ItemType.inline,
-                    inlineRequested: true,
-                    APIServer: "https://api2.aleph.im"
-                })];
-            case 1:
-                res = _a.sent();
-                //console.log("requête create ou update : ", res);
-                return [2 /*return*/, res];
-        }
+var enc = new TextEncoder();
+var dec = new TextDecoder("utf-8");
+//recuperer pbkdf de la data
+function cipherString(myString, pbkdf) {
+    return __awaiter(this, void 0, void 0, function () {
+        var encoded, iv, res;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    encoded = enc.encode(myString);
+                    iv = window.crypto.getRandomValues(new Uint8Array(12));
+                    return [4 /*yield*/, window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, pbkdf, encoded)];
+                case 1:
+                    res = _a.sent();
+                    // associer res et iv dans le local storage ou backend ?
+                    return [2 /*return*/, res];
+            }
+        });
     });
-}); };
+}
+exports.cipherString = cipherString;
+//key correspond au website(url ?)
+function cipherMessage(key, title, login, password, pbkdf) {
+    return __awaiter(this, void 0, void 0, function () {
+        var ckey, decckey, ctitle, clogin, cpassword;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, cipherString(key, pbkdf)];
+                case 1:
+                    ckey = _a.sent();
+                    decckey = dec.decode(ckey);
+                    return [4 /*yield*/, cipherString(title, pbkdf)];
+                case 2:
+                    ctitle = _a.sent();
+                    return [4 /*yield*/, cipherString(login, pbkdf)];
+                case 3:
+                    clogin = _a.sent();
+                    return [4 /*yield*/, cipherString(password, pbkdf)];
+                case 4:
+                    cpassword = _a.sent();
+                    return [2 /*return*/, { decckey: decckey, ctitle: ctitle, clogin: clogin, cpassword: cpassword }];
+            }
+        });
+    });
+}
+exports.cipherMessage = cipherMessage;
+// le content est de la forme { 'a' : 'mon_titre', 'b' : 'mon_login', 'c' : 'mon_password' } et key correspond au website(url ?)
+function aleph_create(account, key, content) {
+    return __awaiter(this, void 0, void 0, function () {
+        var res;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, (0, aggregate_1.Publish)({
+                        account: account,
+                        key: key,
+                        content: content,
+                        // DEBUT QUESTIONS
+                        channel: "TEST",
+                        storageEngine: types_1.ItemType.storage,
+                        inlineRequested: true,
+                        // FIN QUESTIONS
+                        APIServer: "https://api2.aleph.im"
+                    })];
+                case 1:
+                    res = _a.sent();
+                    //console.log("requête create ou update : ", res);
+                    return [2 /*return*/, res];
+            }
+        });
+    });
+}
 exports.aleph_create = aleph_create;
-var aleph_get = function (address) { return __awaiter(void 0, void 0, void 0, function () {
-    var res;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, (0, aggregate_2.Get)({
-                    address: address,
-                    APIServer: "https://api2.aleph.im"
-                })];
-            case 1:
-                res = _a.sent();
-                //console.log("requête get : ", res);
-                return [2 /*return*/, res];
-        }
-    });
-}); };
-exports.aleph_get = aleph_get;
