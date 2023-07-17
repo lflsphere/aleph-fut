@@ -1,11 +1,9 @@
 
+import { Account } from 'aleph-sdk-ts/dist/accounts/account';
 import { Publish as publishAggregate } from 'aleph-sdk-ts/dist/messages/aggregate';
 import { ItemType } from 'aleph-sdk-ts/dist/messages/types';
 
-import { Account } from 'aleph-sdk-ts/dist/accounts/account';
 
-import { NewAccount } from 'aleph-sdk-ts/dist/accounts/ethereum';
-export const { account } = NewAccount(); 
 
 const enc = new TextEncoder();
 const dec = new TextDecoder("utf-8");
@@ -57,8 +55,8 @@ export async function aleph_create(account : Account, key : string, content : ob
 
         // DEBUT QUESTIONS
         channel: "TEST", // A HARDCODER CEST QUOI CHANNEL ?
-        storageEngine: ItemType.storage, // A HARDCODER CA DOIT ETRE ALEPH_STORAGE OU INLINE ?
-        inlineRequested: true,
+        storageEngine: ItemType.inline, // A HARDCODER CA DOIT ETRE ALEPH_STORAGE OU INLINE ?
+        //inlineRequested: true, // car deprecated
         // FIN QUESTIONS
 
 

@@ -42,7 +42,7 @@ export async function aleph_fetch(address : string) {
         address  : address,
         APIServer: "https://api2.aleph.im"
     });
-    //console.log("requête get : ", res);
+    console.log("requête get : ", res);
     return res;
     
 }

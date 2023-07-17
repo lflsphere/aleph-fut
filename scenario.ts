@@ -1,6 +1,10 @@
-import { account } from './create';
 import { aleph_create } from './create';
+import { aleph_fetch } from './fetch';
+
 import { Buffer } from 'buffer';
+
+import { NewAccount } from 'aleph-sdk-ts/dist/accounts/ethereum';
+const { account, mnemonic } = NewAccount(); 
 
 const cle : string = 'fcb';
 const key : Buffer = Buffer.from(cle);
@@ -17,8 +21,13 @@ const b = await account.encrypt(k);
 const d = await account.encrypt(val);
 */
 
-aleph_create(account, cle, { 'a' : 'first', 'b' : c, 'c' : v});
-//aleph_create(account, "psg", {"kimpembe" : "dc", "verrati" : "mc"} );
+async function scenario() {
+    await aleph_create(account, cle, { 'a' : 'first', 'b' : c, 'c' : v});
+    await aleph_create(account, "psg", {"kimpembe" : "dc", "verrati" : "mc"} );
 
-//const res = aleph_get(account.address);
-//console.log(res);
+    const res = await aleph_fetch(account.address);
+    return res;
+}
+
+const res = scenario();
+console.log(res);

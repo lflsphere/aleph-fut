@@ -1,6 +1,6 @@
 
 import { tezos } from 'aleph-sdk-ts/dist/accounts';
-import { ImportAccountFromPrivateKey, NewAccount, TEZOSAccount } from 'aleph-sdk-ts/dist/accounts/tezos';
+import { ImportAccountFromMnemonic, NewAccount, ETHAccount } from 'aleph-sdk-ts/dist/accounts/ethereum';
 import { aggregate } from 'aleph-sdk-ts/dist/messages';
 import { MessageType } from 'aleph-sdk-ts/dist/messages/types';
 import { BaseMessage } from 'aleph-sdk-ts/dist/messages/types';
@@ -30,16 +30,17 @@ export async function generateKey(password: string) {
 //recuperer pbkdf de generateKey(password)
 export async function generateNewAccount(pbkdf : CryptoKey) {
 
-    const { signerAccount, privateKey } = await NewAccount(); 
+    const { account, mnemonic } = NewAccount(); 
 
-    protectAccount(pbkdf, privateKey);
+    const encMnemonic = enc.encode(mnemonic);
+    protectAccount(pbkdf, encMnemonic);
 
-    return signerAccount; // permet de directement interagir avec aleph dès la génération du compte
+    return account; // permet de directement interagir avec aleph dès la génération du compte
 
 }
 
 
-export async function protectAccount(pbkdf : CryptoKey, privateKey : ArrayBuffer) {
+export async function protectAccount(pbkdf : CryptoKey, mnemonic : ArrayBuffer) {
     
     // iv will be needed for decryption
     const iv = window.crypto.getRandomValues(new Uint8Array(12)); 
@@ -48,7 +49,7 @@ export async function protectAccount(pbkdf : CryptoKey, privateKey : ArrayBuffer
     const cpK = window.crypto.subtle.encrypt(
         { name: "AES-GCM", iv: iv },
         pbkdf,
-        privateKey,
+        mnemonic,
         ); 
     //stocker cpK
 
@@ -65,9 +66,9 @@ export async function changePassword(iv : Uint8Array, pbkdf : CryptoKey, cpk : A
 
     const pbkdfNew : CryptoKey = await generateKey(newPassword);
 
-    const privateKey : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cpk);
+    const mnemonic : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cpk);
 
-    protectAccount(pbkdfNew, privateKey);
+    protectAccount(pbkdfNew, mnemonic);
 
 
     
@@ -77,21 +78,21 @@ export async function changePassword(iv : Uint8Array, pbkdf : CryptoKey, cpk : A
 
 
 //recuperer iv et cpk du local storage + recuperer pbkdf de generateKey(password)
-export async function importAccount(iv : Uint8Array, pbkdf : CryptoKey, cpk : ArrayBuffer) {
+export async function importAccount(iv : Uint8Array, pbkdf : CryptoKey, cMnemonic : ArrayBuffer) {
 
-    const privateKey : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cpk);
-    const privateKeyString : string = dec.decode(privateKey);
+    const mnemonic : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cMnemonic);
+    const mnemonicString : string = dec.decode(mnemonic);
 
-    const TEZOSAccount = await ImportAccountFromPrivateKey(privateKeyString);
+    const ETHAccount = ImportAccountFromMnemonic(mnemonicString);
 
-    return TEZOSAccount;
+    return ETHAccount;
 
 }
 
 
 
 
-export async function generateDataKey(account : TEZOSAccount) {
+export async function generateDataKey(account : ETHAccount) {
     
 
     const hash = await window.crypto.subtle.digest("SHA-256", enc.encode("item"));
