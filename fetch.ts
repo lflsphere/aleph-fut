@@ -1,6 +1,6 @@
 
 import { Get as getAggregate } from 'aleph-sdk-ts/dist/messages/aggregate';
-import { AggregateMessage } from 'aleph-sdk-ts/dist/messages/types';
+//import { AggregateMessage } from 'aleph-sdk-ts/dist/messages/types';
 
 
 const enc = new TextEncoder();
@@ -12,15 +12,20 @@ const dec = new TextDecoder("utf-8");
 //recuperer iv et myString + recuperer pbkdf de la data
 export async function decipherData(data : ArrayBuffer, pbkdf : CryptoKey, iv : Uint8Array) {
 
-    const res = await window.crypto.subtle.decrypt(
-        { name: "AES-GCM", iv: iv },
-        pbkdf,
-        data,
-    );
+    try{
+        const res = await window.crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: iv },
+            pbkdf,
+            data,
+        );
+        const stringData = dec.decode(res);
 
-    const stringData = dec.decode(res);
+        return stringData;
+    } catch(e) {
+        console.log("error while deciphering data");
+    }
 
-    return stringData;
+    
 }
 
 
@@ -38,17 +43,18 @@ export async function decipherKey(key : string, pbkdf : CryptoKey, iv : Uint8Arr
 
 // voir comment on fait remonter le cas d'erreur dans l'appli
 export async function aleph_fetch(address : string) {
-    let res;
+    
     try {
-        res = await getAggregate({
+        const res = await getAggregate({
             address  : address,
             APIServer: "https://api2.aleph.im"
         });
+        return res;
+
     } catch(e) {
         console.log("erreur pour fetch");
         //res = e;
     }
     //console.log("requête get : ", res);
-    return res;
     
 }

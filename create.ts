@@ -16,30 +16,45 @@ export async function cipherString(myString : string, pbkdf : CryptoKey) {
 
     // iv will be needed for decryption
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
-    const res = await window.crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv },
-        pbkdf,
-        encoded,
-    );
+    try {
+        const res = await window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: iv },
+            pbkdf,
+            encoded,
+        );
+        return { res, iv };     // associer res et iv dans le backend.
 
 
-    return { res, iv };     // associer res et iv dans le backend.
+    } catch(e) { // VOIR COMMENT GERER ERREUR POTENTIELLE
+        console.log("error while ciphering data");
+        const res = undefined;
+        return { res, iv };
+    }
+
 
 }
 
 
-//key correspond au website(url ?)
-export async function cipherMessage(key : string, title : string, login : string, password : string, pbkdf : CryptoKey) {
+//key correspond au website (url ?)
+export async function cipherMessage(key : string, title : Array<string>, login : Array<string>, password : Array<string>, pbkdf : CryptoKey) {
 
     const ckey = await cipherString(key, pbkdf);
+    
     const decckey = dec.decode(ckey.res);
     const ckeyiv = ckey.iv;
+   
+    let ctitleArray = [];
+    let cloginArray = [];
+    let cpasswordArray = [];
+    for(let i=0; i<title.length; i++) {
+        ctitleArray.push(await cipherString(title[i], pbkdf));
+        cloginArray.push(await cipherString(login[i], pbkdf));
+        cpasswordArray.push(await cipherString(password[i], pbkdf));
+    }
+    
 
-    const ctitle = await cipherString(title, pbkdf);
-    const clogin = await cipherString(login, pbkdf);
-    const cpassword = await cipherString(password, pbkdf);
-
-    return { decckey, ckeyiv, ctitle, clogin, cpassword };
+    const content = { a : ckeyiv, b : ctitleArray, c : cloginArray, d : cpasswordArray }
+    return { decckey, content };
 
 }
 
@@ -47,9 +62,9 @@ export async function cipherMessage(key : string, title : string, login : string
 
 // le content est de la forme { 'a' : ckeyiv, 'b' : mon_titre_chiffre, 'c' : iv_titre, 'd' : mon_login_chiffre, 'e' : iv_login, 'f' : mon_password_chiffre, 'g' : iv_password } et key correspond au website(url ?)
 export async function aleph_create(account : Account, key : string, content : object) {
-    let res;
+
     try{
-        res = await publishAggregate({
+        const res = await publishAggregate({
             account: account,
             key: key,
             content: content,
@@ -64,14 +79,24 @@ export async function aleph_create(account : Account, key : string, content : ob
 
             APIServer: "https://api2.aleph.im"
         });
+        return res;
+
     } catch(e) {
         console.log("erreur pour fetch");
         //res = e;
     }
     //console.log("requête create ou update : ", res);
-    return res;
 
 } 
+
+
+// Appeler importAccount de accountgeneration.ts pour retrieve account 
+export async function create_update_delete(account : Account, key : string, title : Array<string>, login : Array<string>, password : Array<string>, pbkdf : CryptoKey) {
+    
+    const { decckey, content } = await cipherMessage(key, title, login, password, pbkdf);
+    aleph_create(account, decckey, content);
+
+}
 
 
 

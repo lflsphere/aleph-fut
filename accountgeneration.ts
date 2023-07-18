@@ -12,11 +12,17 @@ const dec = new TextDecoder("utf-8");
 
 export async function generateKey(password: string) {
 
-    const digest : ArrayBuffer = await window.crypto.subtle.digest("SHA-256", enc.encode(password));
-    const gcm : CryptoKey = await window.crypto.subtle.importKey("raw", digest, "AES-GCM", false, ["encrypt", "decrypt"]);
-    const pbkdf : CryptoKey = await window.crypto.subtle.deriveKey("PBKDF2", gcm, "AES-GCM", false, ["encrypt", "decrypt"]);
+    try {
+        const digest : ArrayBuffer = await window.crypto.subtle.digest("SHA-256", enc.encode(password));
+        const gcm : CryptoKey = await window.crypto.subtle.importKey("raw", digest, "AES-GCM", false, ["encrypt", "decrypt"]);
+        const pbkdf : CryptoKey = await window.crypto.subtle.deriveKey("PBKDF2", gcm, "AES-GCM", false, ["encrypt", "decrypt"]);
+        return pbkdf;
 
-    return pbkdf;
+    } catch(e) { // VOIR COMMENT GERER ERREUR POTENTIELLE
+        console.log("error while generating the master key");
+        
+        
+    }
     
 }
 
@@ -28,20 +34,24 @@ export async function protectAccount(pbkdf : CryptoKey, mnemonic : ArrayBuffer) 
     // iv will be needed for decryption
     const iv = window.crypto.getRandomValues(new Uint8Array(12)); 
 
-    const cMnemonic = window.crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv },
-        pbkdf,
-        mnemonic,
-        ); 
-    //stocker iv + mnemonic
-    const cipheredLoaker = {
-        cmnemo : cMnemonic,
-        mnemoiv : iv,
-    };
+    try {
+        
+        const cMnemonic = window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: iv },
+            pbkdf,
+            mnemonic,
+            ); 
+        //stocker iv + mnemonic
+        const cipheredLoaker = {
+            cmnemo : cMnemonic,
+            mnemoiv : iv,
+        };
 
-    browser.storage.local.set({ "cLoaker" : cipheredLoaker});
-
-
+        browser.storage.local.set({ "cLoaker" : cipheredLoaker});
+    } catch(e) {
+        console.log("error while encrypting the mnemonic");
+    }
+    
     //return cpK ???
 
 }
@@ -70,11 +80,15 @@ export async function changePassword(pbkdf : CryptoKey, newPassword : string) {
     const iv = cipheredLoaker.mnemoiv;
     const cMnemonic = cipheredLoaker.mnemo;
 
-    const pbkdfNew : CryptoKey = await generateKey(newPassword);
+    try{
+        const pbkdfNew = await generateKey(newPassword);
 
-    const mnemonic : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cMnemonic);
+        const mnemonic : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cMnemonic);
 
-    protectAccount(pbkdfNew, mnemonic);
+        protectAccount(pbkdfNew, mnemonic);
+    } catch(e) {
+        console.log("error while changing the master password");
+    }
 
 
     
@@ -90,12 +104,16 @@ export async function importAccount(pbkdf : CryptoKey) {
     const iv = cipheredLoaker.mnemoiv;
     const cMnemonic = cipheredLoaker.mnemo;
 
-    const mnemonic : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cMnemonic);
-    const mnemonicString : string = dec.decode(mnemonic);
+    try{
+        const mnemonic : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cMnemonic);
+        const mnemonicString : string = dec.decode(mnemonic);
 
-    const ETHAccount = ImportAccountFromMnemonic(mnemonicString);
+        const ETHAccount = ImportAccountFromMnemonic(mnemonicString);
 
-    return ETHAccount;
+        return ETHAccount;
+    } catch(e) {
+        console.log("error while importing the account");
+    }
 
 }
 
@@ -105,28 +123,33 @@ export async function importAccount(pbkdf : CryptoKey) {
 export async function generateDataKey(account : ETHAccount) {
     
 
-    const hash = await window.crypto.subtle.digest("SHA-256", enc.encode("item"));
-    const stringHash = dec.decode(hash);
+    try {
+        const hash = await window.crypto.subtle.digest("SHA-256", enc.encode("item"));
+        const stringHash = dec.decode(hash);
 
-    const signature = await account.Sign({  
+        const signature = await account.Sign({  
 
-        chain: Chain.TEZOS,
-        sender: account.address,
-        type: MessageType.aggregate,
-        channel: "TEST",
-        confirmed: true,
-        signature: "signature",
-        size: 123,
-        time: 123,
-        item_type: ItemType.inline, //inline ou storage
-        item_hash: stringHash,
-        content: { address : account.address, time : 123}
+            chain: Chain.TEZOS,
+            sender: account.address,
+            type: MessageType.aggregate,
+            channel: "TEST",
+            confirmed: true,
+            signature: "signature",
+            size: 123,
+            time: 123,
+            item_type: ItemType.inline, //inline ou storage
+            item_hash: stringHash,
+            content: { address : account.address, time : 123}
 
-    });
+        });
 
-    const res = await generateKey(signature);
+        const res = await generateKey(signature);
 
-    return res;
+        return res;
+    } catch(e) {
+        console.log("error while generating the key to cipher data");
+
+    }
 
 }
 
