@@ -22,9 +22,9 @@ export async function cipherString(myString : string, pbkdf : CryptoKey) {
         encoded,
     );
 
-    // associer res et iv dans le local storage ou backend ?
 
-    return res;
+    return { res, iv };     // associer res et iv dans le backend.
+
 }
 
 
@@ -32,39 +32,44 @@ export async function cipherString(myString : string, pbkdf : CryptoKey) {
 export async function cipherMessage(key : string, title : string, login : string, password : string, pbkdf : CryptoKey) {
 
     const ckey = await cipherString(key, pbkdf);
-    const decckey = dec.decode(ckey);
+    const decckey = dec.decode(ckey.res);
+    const ckeyiv = ckey.iv;
 
     const ctitle = await cipherString(title, pbkdf);
     const clogin = await cipherString(login, pbkdf);
     const cpassword = await cipherString(password, pbkdf);
 
-    return { decckey, ctitle, clogin, cpassword };
+    return { decckey, ckeyiv, ctitle, clogin, cpassword };
 
 }
 
 
 
-// le content est de la forme { 'a' : 'mon_titre', 'b' : 'mon_login', 'c' : 'mon_password' } et key correspond au website(url ?)
+// le content est de la forme { 'a' : ckeyiv, 'b' : mon_titre_chiffre, 'c' : iv_titre, 'd' : mon_login_chiffre, 'e' : iv_login, 'f' : mon_password_chiffre, 'g' : iv_password } et key correspond au website(url ?)
 export async function aleph_create(account : Account, key : string, content : object) {
-
-    const res = await publishAggregate({
-        account: account,
-        key: key,
-        content: content,
-
-
-        // DEBUT QUESTIONS
-        channel: "TEST", // A HARDCODER CEST QUOI CHANNEL ?
-        storageEngine: ItemType.inline, // A HARDCODER CA DOIT ETRE ALEPH_STORAGE OU INLINE ?
-        //inlineRequested: true, // car deprecated
-        // FIN QUESTIONS
+    let res;
+    try{
+        res = await publishAggregate({
+            account: account,
+            key: key,
+            content: content,
 
 
-        APIServer: "https://api2.aleph.im"
-    });
+            // DEBUT QUESTIONS
+            channel: "TEST", // A HARDCODER CEST QUOI CHANNEL ?
+            storageEngine: ItemType.inline, // A HARDCODER CA DOIT ETRE ALEPH_STORAGE OU INLINE ?
+            //inlineRequested: true, // car deprecated
+            // FIN QUESTIONS
+
+
+            APIServer: "https://api2.aleph.im"
+        });
+    } catch(e) {
+        console.log("erreur pour fetch");
+        //res = e;
+    }
     //console.log("requête create ou update : ", res);
     return res;
-
 
 } 
 

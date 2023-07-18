@@ -21,13 +21,36 @@ const b = await account.encrypt(k);
 const d = await account.encrypt(val);
 */
 
+async function delay(ms: number) {
+    return new Promise( resolve => setTimeout(resolve, ms) );
+}
+
 async function scenario() {
     await aleph_create(account, cle, { 'a' : 'first', 'b' : c, 'c' : v});
     await aleph_create(account, "psg", {"kimpembe" : "dc", "verrati" : "mc"} );
 
+
+    await delay(50); // attendre un délai d'au moins 0.6 secondes pour fetch data
+    
     const res = await aleph_fetch(account.address);
-    return res;
+
+    console.log(res);
+    /*
+    const str : string = JSON.stringify(res);
+    const jso = JSON.parse(str);
+
+    console.log(jso.data.data);
+
+    
+
+    console.log(jso);
+
+    console.log(jso.fcb.a);
+    */
+    //return res; 
+
 }
 
-const res = scenario();
-console.log(res);
+
+
+scenario();

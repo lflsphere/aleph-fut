@@ -1,5 +1,6 @@
 
 import { Get as getAggregate } from 'aleph-sdk-ts/dist/messages/aggregate';
+import { AggregateMessage } from 'aleph-sdk-ts/dist/messages/types';
 
 
 const enc = new TextEncoder();
@@ -35,14 +36,19 @@ export async function decipherKey(key : string, pbkdf : CryptoKey, iv : Uint8Arr
 
 
 
-
+// voir comment on fait remonter le cas d'erreur dans l'appli
 export async function aleph_fetch(address : string) {
-    
-    const res = await getAggregate({
-        address  : address,
-        APIServer: "https://api2.aleph.im"
-    });
-    console.log("requête get : ", res);
+    let res;
+    try {
+        res = await getAggregate({
+            address  : address,
+            APIServer: "https://api2.aleph.im"
+        });
+    } catch(e) {
+        console.log("erreur pour fetch");
+        //res = e;
+    }
+    //console.log("requête get : ", res);
     return res;
     
 }

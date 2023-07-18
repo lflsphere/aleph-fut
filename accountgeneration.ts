@@ -1,19 +1,13 @@
 
-import { tezos } from 'aleph-sdk-ts/dist/accounts';
 import { ImportAccountFromMnemonic, NewAccount, ETHAccount } from 'aleph-sdk-ts/dist/accounts/ethereum';
-import { aggregate } from 'aleph-sdk-ts/dist/messages';
 import { MessageType } from 'aleph-sdk-ts/dist/messages/types';
-import { BaseMessage } from 'aleph-sdk-ts/dist/messages/types';
 import { ItemType } from 'aleph-sdk-ts/dist/messages/types/base';
 import { Chain } from 'aleph-sdk-ts/dist/messages/types/base';
 
-import { Buffer } from 'buffer';
+//import { Buffer } from 'buffer';
 
 const enc = new TextEncoder();
 const dec = new TextDecoder("utf-8");
-
-
-const password : string = "passwd";
 
 
 export async function generateKey(password: string) {
@@ -25,7 +19,34 @@ export async function generateKey(password: string) {
     return pbkdf;
     
 }
-  
+
+
+
+
+export async function protectAccount(pbkdf : CryptoKey, mnemonic : ArrayBuffer) {
+    
+    // iv will be needed for decryption
+    const iv = window.crypto.getRandomValues(new Uint8Array(12)); 
+
+    const cMnemonic = window.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        pbkdf,
+        mnemonic,
+        ); 
+    //stocker iv + mnemonic
+    const cipheredLoaker = {
+        cmnemo : cMnemonic,
+        mnemoiv : iv,
+    };
+
+    browser.storage.local.set({ "cLoaker" : cipheredLoaker});
+
+
+    //return cpK ???
+
+}
+
+
 
 //recuperer pbkdf de generateKey(password)
 export async function generateNewAccount(pbkdf : CryptoKey) {
@@ -40,33 +61,18 @@ export async function generateNewAccount(pbkdf : CryptoKey) {
 }
 
 
-export async function protectAccount(pbkdf : CryptoKey, mnemonic : ArrayBuffer) {
-    
-    // iv will be needed for decryption
-    const iv = window.crypto.getRandomValues(new Uint8Array(12)); 
-    // stocker iv
-
-    const cpK = window.crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv },
-        pbkdf,
-        mnemonic,
-        ); 
-    //stocker cpK
-
-
-    //return cpK ???
-
-}
-
-
 
 
 //recuperer iv et cpk du local storage + recuperer pbkdf de generateKey(password)
-export async function changePassword(iv : Uint8Array, pbkdf : CryptoKey, cpk : ArrayBuffer, newPassword : string) {
+export async function changePassword(pbkdf : CryptoKey, newPassword : string) {
+
+    const cipheredLoaker = browser.storage.local.get("cLoaker");
+    const iv = cipheredLoaker.mnemoiv;
+    const cMnemonic = cipheredLoaker.mnemo;
 
     const pbkdfNew : CryptoKey = await generateKey(newPassword);
 
-    const mnemonic : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cpk);
+    const mnemonic : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cMnemonic);
 
     protectAccount(pbkdfNew, mnemonic);
 
@@ -78,7 +84,11 @@ export async function changePassword(iv : Uint8Array, pbkdf : CryptoKey, cpk : A
 
 
 //recuperer iv et cpk du local storage + recuperer pbkdf de generateKey(password)
-export async function importAccount(iv : Uint8Array, pbkdf : CryptoKey, cMnemonic : ArrayBuffer) {
+export async function importAccount(pbkdf : CryptoKey) {
+
+    const cipheredLoaker = browser.storage.local.get("cLoaker");
+    const iv = cipheredLoaker.mnemoiv;
+    const cMnemonic = cipheredLoaker.mnemo;
 
     const mnemonic : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cMnemonic);
     const mnemonicString : string = dec.decode(mnemonic);
