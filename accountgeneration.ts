@@ -19,9 +19,10 @@ export async function generateKey(password: string) {
         return pbkdf;
 
     } catch(e) { // VOIR COMMENT GERER ERREUR POTENTIELLE
-        console.log("error while generating the master key");
+        console.log("error while generating the master key " + e);
         
-        
+        throw new Error('couldnt generate a CryptoKey');
+
     }
     
 }
@@ -86,6 +87,8 @@ export async function changePassword(pbkdf : CryptoKey, newPassword : string) {
         const mnemonic : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cMnemonic);
 
         protectAccount(pbkdfNew, mnemonic);
+        
+
     } catch(e) {
         console.log("error while changing the master password");
     }
@@ -129,7 +132,7 @@ export async function generateDataKey(account : ETHAccount) {
 
         const signature = await account.Sign({  
 
-            chain: Chain.TEZOS,
+            chain: Chain.ETH,
             sender: account.address,
             type: MessageType.aggregate,
             channel: "TEST",
