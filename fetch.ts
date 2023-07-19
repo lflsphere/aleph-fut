@@ -1,4 +1,5 @@
 
+import { Account } from 'aleph-sdk-ts/dist/accounts/account';
 import { Get as getAggregate } from 'aleph-sdk-ts/dist/messages/aggregate';
 //import { AggregateMessage } from 'aleph-sdk-ts/dist/messages/types';
 
@@ -29,13 +30,23 @@ export async function decipherData(data : ArrayBuffer, pbkdf : CryptoKey, iv : U
 }
 
 
-export async function decipherKey(key : string, pbkdf : CryptoKey, iv : Uint8Array) {
+export async function decipherMessage(res : any, pbkdf : CryptoKey) {
+    
+    let creds = [];
 
-    const encoded = enc.encode(key);
+    for(let i=0; i < res.content.cContent.length; i++) {
 
-    const stringKey = await decipherData(encoded, pbkdf, iv);
+        const service = await decipherData(res.content.cContent[i].a.res, pbkdf, res.content.cContent[i].a.iv);
+        const title = await decipherData(res.content.cContent[i].b.res, pbkdf, res.content.cContent[i].b.iv);
+        const login = await decipherData(res.content.cContent[i].c.res, pbkdf, res.content.cContent[i].c.iv);
+        const password = await decipherData(res.content.cContent[i].d.res, pbkdf, res.content.cContent[i].d.iv);
 
-    return stringKey;
+        creds.push({ a : service, b : title, c : login, d : password, id : i }); // id afin d'identifer, depuis le frontend, le cred à modifier ou supprimer
+
+    }
+
+    return creds;
+
     
 }
 
@@ -43,7 +54,7 @@ export async function decipherKey(key : string, pbkdf : CryptoKey, iv : Uint8Arr
 
 // voir comment on fait remonter le cas d'erreur dans l'appli
 export async function aleph_fetch(address : string) {
-    
+
     try {
         const res = await getAggregate({
             address  : address,
@@ -57,4 +68,18 @@ export async function aleph_fetch(address : string) {
     }
     //console.log("requête get : ", res);
     
+}
+
+
+
+export async function read(account : Account, pbkdf : CryptoKey) {
+    
+    const res = await aleph_fetch(account.address);
+
+    const str : string = JSON.stringify(res);
+    const json = JSON.parse(str);
+
+    const creds = decipherMessage(json, pbkdf);
+
+    return creds;
 }

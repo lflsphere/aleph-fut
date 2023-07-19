@@ -1,8 +1,8 @@
 
 import { ImportAccountFromMnemonic, NewAccount, ETHAccount } from 'aleph-sdk-ts/dist/accounts/ethereum';
 import { MessageType } from 'aleph-sdk-ts/dist/messages/types';
-import { ItemType } from 'aleph-sdk-ts/dist/messages/types/base';
-import { Chain } from 'aleph-sdk-ts/dist/messages/types/base';
+import { ItemType } from 'aleph-sdk-ts/dist/messages/types';
+import { Chain } from 'aleph-sdk-ts/dist/messages/types';
 
 //import { Buffer } from 'buffer';
 
@@ -18,12 +18,14 @@ export async function generateKey(password: string) {
         const pbkdf : CryptoKey = await window.crypto.subtle.deriveKey("PBKDF2", gcm, "AES-GCM", false, ["encrypt", "decrypt"]);
         return pbkdf;
 
+     
     } catch(e) { // VOIR COMMENT GERER ERREUR POTENTIELLE
         console.log("error while generating the master key " + e);
         
         throw new Error('couldnt generate a CryptoKey');
 
     }
+    
     
 }
 
@@ -49,6 +51,7 @@ export async function protectAccount(pbkdf : CryptoKey, mnemonic : ArrayBuffer) 
         };
 
         browser.storage.local.set({ "cLoaker" : cipheredLoaker});
+
     } catch(e) {
         console.log("error while encrypting the mnemonic");
     }
@@ -80,8 +83,9 @@ export async function changePassword(pbkdf : CryptoKey, newPassword : string) {
     const cipheredLoaker = browser.storage.local.get("cLoaker");
     const iv = cipheredLoaker.mnemoiv;
     const cMnemonic = cipheredLoaker.mnemo;
+    
 
-    try{
+    try {
         const pbkdfNew = await generateKey(newPassword);
 
         const mnemonic : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cMnemonic);
@@ -106,8 +110,9 @@ export async function importAccount(pbkdf : CryptoKey) {
     const cipheredLoaker = browser.storage.local.get("cLoaker");
     const iv = cipheredLoaker.mnemoiv;
     const cMnemonic = cipheredLoaker.mnemo;
+    
 
-    try{
+    try {
         const mnemonic : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cMnemonic);
         const mnemonicString : string = dec.decode(mnemonic);
 
@@ -125,8 +130,8 @@ export async function importAccount(pbkdf : CryptoKey) {
 
 export async function generateDataKey(account : ETHAccount) {
     
-
     try {
+    
         const hash = await window.crypto.subtle.digest("SHA-256", enc.encode("item"));
         const stringHash = dec.decode(hash);
 
@@ -149,10 +154,13 @@ export async function generateDataKey(account : ETHAccount) {
         const res = await generateKey(signature);
 
         return res;
+
+    
     } catch(e) {
         console.log("error while generating the key to cipher data");
 
     }
+    
 
 }
 
