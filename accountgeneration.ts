@@ -4,13 +4,12 @@ import { MessageType } from 'aleph-sdk-ts/dist/messages/types';
 import { ItemType } from 'aleph-sdk-ts/dist/messages/types';
 import { Chain } from 'aleph-sdk-ts/dist/messages/types';
 
-//import { Buffer } from 'buffer';
 
 const enc = new TextEncoder();
 const dec = new TextDecoder("utf-8");
 
 
-export async function generateKey(password: string) {
+export async function generateMasterKey(password: string) {
 
     try {
         const digest : ArrayBuffer = await window.crypto.subtle.digest("SHA-256", enc.encode(password));
@@ -86,7 +85,7 @@ export async function changePassword(pbkdf : CryptoKey, newPassword : string) {
     
 
     try {
-        const pbkdfNew = await generateKey(newPassword);
+        const pbkdfNew = await generateMasterKey(newPassword);
 
         const mnemonic : ArrayBuffer = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, pbkdf, cMnemonic);
 
@@ -151,7 +150,7 @@ export async function generateDataKey(account : ETHAccount) {
 
         });
 
-        const res = await generateKey(signature);
+        const res = await generateMasterKey(signature);
 
         return res;
 
